@@ -68,7 +68,8 @@ std::optional<unsigned> StoreBuffer::query(unsigned addr) {
     if (pushPtr == 0) {
         p += ROB_SIZE;
     }
-    while (p != popPtr) {
+    // while (p != popPtr) { 
+    do {
         if (buffer[p].valid &&
             (buffer[p].storeAddress & 0xFFFFFFFCu) == (addr & 0xFFFFFFFCu)) {
             return std::make_optional(buffer[p].storeData);
@@ -77,6 +78,11 @@ std::optional<unsigned> StoreBuffer::query(unsigned addr) {
             p += ROB_SIZE;
         }
         p--;
+    // } 
+    } while (p != popPtr);
+    if (buffer[p].valid &&
+        (buffer[p].storeAddress & 0xFFFFFFFCu) == (addr & 0xFFFFFFFCu)) {
+        return std::make_optional(buffer[p].storeData);
     }
     return std::nullopt;
 }

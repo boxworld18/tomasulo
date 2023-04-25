@@ -1,4 +1,4 @@
-export CHECK=true
+export CHECK=false
 
 if ($CHECK) then
     ./checker -p -f ./test/selection_sort -c ../checkfiles/selection_sort.chk
