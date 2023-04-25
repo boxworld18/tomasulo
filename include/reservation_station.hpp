@@ -51,7 +51,6 @@ void ReservationStation<size>::insertInstruction(
         // TODO: Dispatch instruction to this slot
         unsigned rs1 = inst.getRs1();
         unsigned rs2 = inst.getRs2();
-        unsigned rd = inst.getRd();
 
         if (!regFile->isBusy(rs1)) {
             slot.readPort1.value = regFile->read(rs1);

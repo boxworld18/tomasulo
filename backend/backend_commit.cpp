@@ -1,5 +1,6 @@
 #include "logger.h"
 #include "processor.h"
+#include "with_predict.h"
 
 /**
  * @brief 处理前端流出的指令
@@ -84,15 +85,17 @@ bool Backend::commitInstruction([[maybe_unused]] const ROBEntry &entry,
     if (entry.inst == EXTRA::EXIT)
         return true;
 
-    // TODO: frontend.bpuBackendUpdate();
+    if (entry.inst == RV32I::BEQ || entry.inst == RV32I::BNE || entry.inst == RV32I::BLT || 
+        entry.inst == RV32I::BGE || entry.inst == RV32I::BLTU || entry.inst == RV32I::BGEU) {
+        BpuUpdateData buData;
+        buData.isBranch = true;
+        buData.pc = entry.inst.pc;
+        buData.branchTaken = entry.state.actualTaken;
+        buData.jumpTarget = entry.state.jumpTarget;
+        frontend.bpuBackendUpdate(buData);
+    }
+
     unsigned robIdx = rob.getPopPtr();
-
-    std::stringstream ss;
-    ss << entry.inst;
-    Logger::Info("************ After commit, inst is %s", ss.str().c_str());
-
-    unsigned rd = entry.inst.getRd();
-        
     if (entry.inst == RV32I::SB || entry.inst == RV32I::SH || entry.inst == RV32I::SW) {
         auto addr = entry.state.result;
         auto buf = storeBuffer.query(addr);
@@ -100,19 +103,19 @@ bool Backend::commitInstruction([[maybe_unused]] const ROBEntry &entry,
             Logger::Error("Store address mismatch!");
             std::__throw_runtime_error("Store address mismatch!");
         }
-        Logger::Info("LSU addr: %08x, res: %08x", entry.state.result, buf.value());
         data[(addr - 0x80400000) >> 2] = buf.value();
     } else {
+        unsigned rd = entry.inst.getRd();
         regFile->write(rd, entry.state.result, robIdx);
-        Logger::Info("************ After commit, reg[%s] = %08x", xreg_name[rd].c_str(), entry.state.result);
     }
 
     rob.pop();
-    if (entry.state.actualTaken && entry.state.mispredict) {
-        Logger::Info("-----------------⚠Mispredict!⚠----------------");
-        frontend.jump(entry.state.jumpTarget);
+    if (entry.state.mispredict) {
+        if (entry.state.actualTaken)
+            frontend.jump(entry.state.jumpTarget);
+        else
+            frontend.jump(entry.inst.pc + 4);
         flush();
-        return false;
     }
 
     return false;

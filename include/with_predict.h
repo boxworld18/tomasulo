@@ -4,7 +4,7 @@
 class FrontendWithPredict : public Frontend {
 protected:
     BranchPredictBundle bpuFrontendUpdate(unsigned int pc) override;
-
+    BTBSlot btb[BTB_SIZE];
 public:
     FrontendWithPredict(const std::vector<unsigned> &inst);
     unsigned calculateNextPC(unsigned pc) const override;
